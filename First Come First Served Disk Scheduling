@@ -1,0 +1,611 @@
+#include <stdio.h>
+
+#define MAX 10
+#define RESOURCES 3
+
+int main() {
+    int max[MAX][RESOURCES], allot[MAX][RESOURCES], need[MAX][RESOURCES];
+    int available[RESOURCES], finish[MAX], safeSeq[MAX];
+    int n, m, i, j, k, count = 0;
+
+    printf("Enter number of processes: ");
+    scanf("%d", &n);
+    printf("Enter number of resources: ");
+    scanf("%d", &m);
+
+    printf("Enter maximum resource matrix:\n");
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < m; j++) {
+            scanf("%d", &max[i][j]);
+        }
+    }
+
+    printf("Enter allocation matrix:\n");
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < m; j++) {
+            scanf("%d", &allot[i][j]);
+        }
+    }
+
+    printf("Enter available resources:\n");
+    for (i = 0; i < m; i++) {
+        scanf("%d", &available[i]);
+    }
+
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < m; j++) {
+            need[i][j] = max[i][j] - allot[i][j];
+        }
+    }
+
+    for (i = 0; i < n; i++) {
+        finish[i] = 0;
+    }
+
+    while (count < n) {
+        int found = 0;
+        for (i = 0; i < n; i++) {
+            if (finish[i] == 0) {
+                for (j = 0; j < m; j++) {
+                    if (need[i][j] > available[j]) {
+                        break;
+                    }
+                }
+                if (j == m) {
+                    for (k = 0; k < m; k++) {
+                        available[k] += allot[i][k];
+                    }
+                    safeSeq[count++] = i;
+                    finish[i] = 1;
+                    found = 1;
+                }
+            }
+        }
+        if (found == 0) {
+            printf("System is not in a safe state\n");
+            return 0;
+        }
+    }
+
+    printf("System is in a safe state.\nSafe sequence is: ");
+    for (i = 0; i < n; i++) {
+        printf("%d ", safeSeq[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
+OUTPUT : 
+Enter allocation matrix:
+Enter available resources:
+System is not in a safe state
+Enter number of processes:
+ 63 changes: 63 additions & 0 deletions63  
+dinning philosophere
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,63 @@
+#include <stdio.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+
+#define NUM_PHILOSOPHERS 5
+
+sem_t mutex;
+sem_t forks[NUM_PHILOSOPHERS];
+
+void* philosopher(void* num) {
+    int id = *(int*)num;
+
+    while (1) {
+        printf("Philosopher %d is thinking.\n", id);
+        sleep(1);
+
+        sem_wait(&mutex);
+        sem_wait(&forks[id]);
+        sem_wait(&forks[(id + 1) % NUM_PHILOSOPHERS]);
+
+        printf("Philosopher %d is eating.\n", id);
+        sleep(1);
+
+        sem_post(&forks[id]);
+        sem_post(&forks[(id + 1) % NUM_PHILOSOPHERS]);
+        sem_post(&mutex);
+    }
+}
+
+int main() {
+    pthread_t philosophers[NUM_PHILOSOPHERS];
+    int philosopher_ids[NUM_PHILOSOPHERS];
+
+    sem_init(&mutex, 0, 1);
+    for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+        sem_init(&forks[i], 0, 1);
+        philosopher_ids[i] = i;
+        pthread_create(&philosophers[i], NULL, philosopher, &philosopher_ids[i]);
+    }
+
+    for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+        pthread_join(philosophers[i], NULL);
+    }
+
+    for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+        sem_destroy(&forks[i]);
+    }
+    sem_destroy(&mutex);
+
+    return 0;
+}
+OUTPUT :  
+Philosopher 0 is thinking.
+Philosopher 2 is thinking.
+Philosopher 1 is thinking.
+Philosopher 3 is thinking.
+Philosopher 4 is thinking.
+Philosopher 3 is eating.
+Philosopher 3 is thinking.
+Philosopher 4 is eating.
+Philosopher 3 is eating.
+Philosopher 4 is thinking.
+ Binary file addedBIN +221 KB 
+fcfs scheduling
+Binary file not shown.
+ 53 changes: 53 additions & 0 deletions53  
+fifo paging
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,53 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define FRAME_SIZE 4
+#define PAGE_SIZE 4
+
+int main() {
+    int pages[] = {0, 1, 2, 3, 0, 4, 5, 1, 2, 3, 4, 5};
+    int frames[FRAME_SIZE] = {-1, -1, -1, -1};
+    int pageFaults = 0;
+    int i, j, k, flag;
+
+    for (i = 0; i < sizeof(pages) / sizeof(pages[0]); i++) {
+        flag = 0;
+
+        for (j = 0; j < FRAME_SIZE; j++) {
+            if (frames[j] == pages[i]) {
+                flag = 1;
+                break;
+            }
+        }
+
+        if (flag == 0) {
+            frames[pageFaults % FRAME_SIZE] = pages[i];
+            pageFaults++;
+        }
+
+        printf("Current Page: %d | Frames: ", pages[i]);
+        for (k = 0; k < FRAME_SIZE; k++) {
+            if (frames[k] != -1) {
+                printf("%d ", frames[k]);
+            }
+        }
+        printf("\n");
+    }
+
+    printf("Total Page Faults: %d\n", pageFaults);
+    return 0;
+}
+OUTPUT : 
+Current Page: 0 | Frames: 0 
+Current Page: 1 | Frames: 0 1 
+Current Page: 2 | Frames: 0 1 2 
+Current Page: 3 | Frames: 0 1 2 3 
+Current Page: 0 | Frames: 0 1 2 3 
+Current Page: 4 | Frames: 4 1 2 3 
+Current Page: 5 | Frames: 4 5 2 3 
+Current Page: 1 | Frames: 4 5 1 3 
+Current Page: 2 | Frames: 4 5 1 2 
+Current Page: 3 | Frames: 3 5 1 2 
+Current Page: 4 | Frames: 3 4 1 2 
+Current Page: 5 | Frames: 3 4 5 2 
+Total Page Faults: 11
+ Binary file addedBIN +79.4 KB 
+file copying
+Binary file not shown.
+ 33 changes: 33 additions & 0 deletions33  
+inter process communication
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,33 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+
+#define MAX_TEXT 512
+struct message {
+    long msg_type;
+    char text[MAX_TEXT];
+};
+int main() {
+    struct message msg;
+    int msgid;
+    key_t key = 1234;
+    msgid = msgget(key, 0666 | IPC_CREAT);
+    if (msgid == -1) {
+        perror("msgget failed");
+        exit(EXIT_FAILURE);
+    }
+    msg.msg_type = 1;
+    snprintf(msg.text, sizeof(msg.text), "Hello from process %d", getpid());
+
+    if (msgsnd(msgid, &msg, sizeof(msg.text), 0) == -1) {
+        perror("msgsnd failed");
+        exit(EXIT_FAILURE);
+    }
+    printf("Message sent: %s\n", msg.text);
+    return 0;
+}
+OUTPUT : 
+Message sent: Hello from process 16920
+ 70 changes: 70 additions & 0 deletions70  
+lru paging
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,70 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define FRAME_SIZE 3
+#define PAGE_SIZE 10
+
+int frames[FRAME_SIZE];
+int pages[PAGE_SIZE];
+int pageFaults = 0;
+
+void initializeFrames() {
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        frames[i] = -1;
+    }
+}
+
+int isPageInFrames(int page) {
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        if (frames[i] == page) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int getLRUIndex(int time[], int n) {
+    int minimum = time[0], index = 0;
+    for (int i = 1; i < n; i++) {
+        if (time[i] < minimum) {
+            minimum = time[i];
+            index = i;
+        }
+    }
+    return index;
+}
+
+void lruPageReplacement() {
+    int time[FRAME_SIZE] = {0};
+    for (int i = 0; i < PAGE_SIZE; i++) {
+        if (!isPageInFrames(pages[i])) {
+            int j;
+            for (j = 0; j < FRAME_SIZE; j++) {
+                if (frames[j] == -1) {
+                    frames[j] = pages[i];
+                    pageFaults++;
+                    time[j] = i;
+                    break;
+                }
+            }
+            if (j == FRAME_SIZE) {
+                int lruIndex = getLRUIndex(time, FRAME_SIZE);
+                frames[lruIndex] = pages[i];
+                pageFaults++;
+                time[lruIndex] = i;
+            }
+        }
+    }
+}
+int main() {
+    initializeFrames();
+    int pageReferenceString[] = {0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2, 1, 0};
+    for (int i = 0; i < sizeof(pageReferenceString) / sizeof(pageReferenceString[0]); i++) {
+        pages[i] = pageReferenceString[i];
+    }
+    lruPageReplacement();
+    printf("Total Page Faults: %d\n", pageFaults);
+    return 0;
+}
+OUTPUT : 
+Total Page Faults: 12
+ 34 changes: 34 additions & 0 deletions34  
+multi threding
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,34 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#define NUM_THREADS 5
+void* print_message(void* threadid) {
+    long tid;
+    tid = (long)threadid;
+    printf("Thread #%ld: Hello, World!\n", tid);
+    pthread_exit(NULL);
+}
+int main() {
+    pthread_t threads[NUM_THREADS];
+    int rc;
+    long t;
+    for(t = 0; t < NUM_THREADS; t++) {
+        rc = pthread_create(&threads[t], NULL, print_message, (void *)t);
+        if (rc) {
+            printf("Error: Unable to create thread, %d\n", rc);
+            exit(-1);
+        }
+    }
+
+    for(t = 0; t < NUM_THREADS; t++) {
+        pthread_join(threads[t], NULL);
+    }
+
+    return 0;
+}
+OUTPUT:
+Thread #0: Hello, World!
+Thread #3: Hello, World!
+Thread #1: Hello, World!
+Thread #2: Hello, World!
+Thread #4: Hello, World!
+ 62 changes: 62 additions & 0 deletions62  
+optimal paging
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,62 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define FRAME_SIZE 4
+#define PAGE_SIZE 4
+#define TOTAL_PAGES 8
+
+int pageFrames[FRAME_SIZE];
+int pageFaults = 0;
+
+void initializeFrames() {
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        pageFrames[i] = -1;
+    }
+}
+
+int isPageInFrames(int page) {
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        if (pageFrames[i] == page) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void replacePage(int page) {
+    int lruIndex = 0;
+    for (int i = 1; i < FRAME_SIZE; i++) {
+        if (pageFrames[i] < pageFrames[lruIndex]) {
+            lruIndex = i;
+        }
+    }
+    pageFrames[lruIndex] = page;
+}
+
+void optimalPaging(int pages[], int n) {
+    initializeFrames();
+    for (int i = 0; i < n; i++) {
+        if (!isPageInFrames(pages[i])) {
+            if (pageFaults < FRAME_SIZE) {
+                pageFrames[pageFaults++] = pages[i];
+            } else {
+                replacePage(pages[i]);
+            }
+            printf("Page fault for page: %d\n", pages[i]);
+        }
+    }
+}
+
+int main() {
+    int pages[TOTAL_PAGES] = {0, 1, 2, 0, 3, 0, 4, 2};
+    optimalPaging(pages, TOTAL_PAGES);
+    printf("Total page faults: %d\n", pageFaults);
+    return 0;
+}
+OUTPUT : 
+Page fault for page: 0
+Page fault for page: 1
+Page fault for page: 2
+Page fault for page: 3
+Page fault for page: 4
+Total page faults: 4
+ Binary file addedBIN +81.1 KB 
+priority scheduling
+Binary file not shown.
+ Binary file addedBIN +194 KB 
+process creation
+Binary file not shown.
+ 75 changes: 75 additions & 0 deletions75  
+producer consumer
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,75 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+
+#define BUFFER_SIZE 5
+
+int buffer[BUFFER_SIZE];
+int in = 0;
+int out = 0;
+
+sem_t empty;
+sem_t full;
+pthread_mutex_t mutex;
+
+void* producer(void* arg) {
+    for (int i = 0; i < 10; i++) {
+        sem_wait(&empty);
+        pthread_mutex_lock(&mutex);
+
+        buffer[in] = i;
+        printf("Produced: %d\n", buffer[in]);
+        in = (in + 1) % BUFFER_SIZE;
+
+        pthread_mutex_unlock(&mutex);
+        sem_post(&full);
+    }
+    return NULL;
+}
+
+void* consumer(void* arg) {
+    for (int i = 0; i < 10; i++) {
+        sem_wait(&full);
+        pthread_mutex_lock(&mutex);
+
+        int item = buffer[out];
+        printf("Consumed: %d\n", item);
+        out = (out + 1) % BUFFER_SIZE;
+
+        pthread_mutex_unlock(&mutex);
+        sem_post(&empty);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t prod, cons;
+
+    sem_init(&empty, 0, BUFFER_SIZE);
+    sem_init(&full, 0, 0);
+    pthread_mutex_init(&mutex, NULL);
+
+    pthread_create(&prod, NULL, producer, NULL);
+    pthread_create(&cons, NULL, consumer, NULL);
+
+    pthread_join(prod, NULL);
+    pthread_join(cons, NULL);
+
+    sem_destroy(&empty);
+    sem_destroy(&full);
+    pthread_mutex_destroy(&mutex);
+
+    return 0;
+}
+OUTPUT : 
+Produced: 0
+Produced: 1
+Produced: 2
+Produced: 3
+Produced: 4
+Consumed: 0
+Consumed: 1
+Consumed: 2
+Consumed: 3
+Consumed: 4
+ 54 changes: 54 additions & 0 deletions54  
+round robin scheduling
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,54 @@
+#include <stdio.h>
+#define MAX 10
+void findWaitingTime(int processes[], int n, int bt[], int wt[], int quantum) {
+    int rem_bt[MAX];
+    for (int i = 0; i < n; i++)
+        rem_bt[i] = bt[i];
+    int t = 0;
+    while (1) {
+        int done = 1;
+        for (int i = 0; i < n; i++) {
+            if (rem_bt[i] > 0) {
+                done = 0;
+                if (rem_bt[i] > quantum) {
+                    t += quantum;
+                    rem_bt[i] -= quantum;
+                } else {
+                    t = t + rem_bt[i];
+                    wt[i] = t - bt[i];
+                    rem_bt[i] = 0;
+                }
+            }
+        }
+        if (done == 1)
+            break;
+    }
+}
+void findTurnAroundTime(int processes[], int n, int bt[], int wt[], int tat[]) {
+    for (int i = 0; i < n; i++)
+        tat[i] = bt[i] + wt[i];
+}
+void findavgTime(int processes[], int n, int bt[], int quantum) {
+    int wt[MAX], tat[MAX];
+    findWaitingTime(processes, n, bt, wt, quantum);
+    findTurnAroundTime(processes, n, bt, wt, tat);
+
+    float total_wt = 0, total_tat = 0;
+    for (int i = 0; i < n; i++) {
+        total_wt += wt[i];
+        total_tat += tat[i];
+    }
+    printf("Average waiting time: %.2f\n", total_wt / n);
+    printf("Average turnaround time: %.2f\n", total_tat / n);
+}
+int main() {
+    int processes[] = { 0, 1, 2, 3 };
+    int n = sizeof(processes) / sizeof(processes[0]);
+    int burst_time[] = { 10, 5, 8, 12 };
+    int quantum = 4;
+    findavgTime(processes, n, burst_time, quantum);
+    return 0;
+}
+OUTPUT : 
+Average waiting time: 19.25
+Average turnaround time: 28.00
+ 37 changes: 37 additions & 0 deletions37  
+sequential file allocation
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,37 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+void createFile(const char *filename) {
+    FILE *file = fopen(filename, "w");
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+    for (int i = 0; i < 10; i++) {
+        fprintf(file, "This is line %d\n", i + 1);
+    }
+    fclose(file);
+}
+
+void readFile(const char *filename) {
+    char buffer[255];
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+    while (fgets(buffer, sizeof(buffer), file)) {
+        printf("%s", buffer);
+    }
+    fclose(file);
+}
+
+int main() {
+    const char *filename = "sequential_file.txt";
+    createFile(filename);
+    readFile(filename);
+    return 0;
+}
+OUTPUT : 
+Error opening file: Permission denied
+Error opening file: No such file or directory
